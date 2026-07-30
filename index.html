@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부처 정책 공지사항 검색 포털</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08); }
+        .transition-all { transition: all 0.25s ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                <div class="bg-indigo-700 p-2.5 rounded-lg shadow-inner">
+                    <i class="fa-solid fa-bullhorn text-xl text-indigo-200"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">정책 공지사항 통합 조회</h1>
+                    <p class="text-xs text-indigo-300 mt-0.5">부처 직원 전용 신속 검색 도구</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 text-xs bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-700">
+                <i class="fa-regular fa-clock text-indigo-300"></i>
+                <span id="current-date" class="text-indigo-100 font-medium"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        
+        <!-- Search & Filter Control Panel -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                
+                <!-- Search Input -->
+                <div class="md:col-span-7 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <input type="text" id="searchInput" 
+                           class="block w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all"
+                           placeholder="검색어 입력 (제목 또는 분야 키워드)...">
+                </div>
+
+                <!-- Select Filter -->
+                <div class="md:col-span-3 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-filter"></i>
+                    </div>
+                    <select id="categorySelect" 
+                            class="block w-full pl-10 pr-8 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm appearance-none transition-all cursor-pointer">
+                        <option value="전체">모든 분야 보기</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="md:col-span-2">
+                    <button id="resetBtn" 
+                            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-lg text-sm transition-all flex items-center justify-center space-x-2 border border-slate-300">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                        <span>초기화</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Pills Container -->
+            <div id="categoryPills" class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100 items-center">
+                <span class="text-xs font-semibold text-slate-500 mr-1"><i class="fa-solid fa-tags mr-1"></i> 빠른 분야 선택:</span>
+            </div>
+        </div>
+
+        <!-- Result Status Bar -->
+        <div class="flex justify-between items-center mb-6 px-1">
+            <div class="flex items-center space-x-2">
+                <h2 class="text-lg font-bold text-slate-800">공지사항 목록</h2>
+                <span id="resultCountBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2.5 py-0.5 rounded-full">결과 0건</span>
+            </div>
+            <div class="text-xs text-slate-500 hidden sm:block">
+                * 카드 클릭 시 상세 연락처 및 담당부서 확인 가능
+            </div>
+        </div>
+
+        <!-- Cards Grid -->
+        <div id="cardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Dynamic Cards Rendered Here -->
+        </div>
+
+        <!-- Empty State (Hidden by default) -->
+        <div id="emptyState" class="hidden bg-white rounded-xl border border-slate-200 p-12 text-center my-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-100 text-slate-400 rounded-full mb-4 text-xl">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-700 mb-1">검색 결과가 없습니다</h3>
+            <p class="text-sm text-slate-500 mb-4">검색어나 필터를 변경하여 다시 시도해 주세요.</p>
+            <button onclick="resetFilters()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg text-xs transition-all">
+                전체 목록 보기
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="font-medium">중앙행정기관 정책 공지사항 스마트 검색 시스템</p>
+            <p class="text-slate-400 mt-1">본 시스템에 등록된 공지사항 관련 문의는 각 담당과로 연락해 주시기 바랍니다.</p>
+        </div>
+    </footer>
+
+    <!-- Script Data & Logic -->
+    <script>
+        // 요구사항 지정 JSON 데이터 선언
+        const policyData = [
+          {
+            "id": 1,
+            "분야": "행정혁신",
+            "제목": "디지털혁신 우수사례 공모",
+            "담당과": "디지털혁신과",
+            "연락처": "044-205-1234"
+          },
+          {
+            "id": 2,
+            "분야": "안전관리",
+            "제목": "여름철 폭우 대비 안전점검",
+            "담당과": "재난관리정책과",
+            "연락처": "044-205-2345"
+          },
+          {
+            "id": 3,
+            "분야": "민원서비스",
+            "제목": "통합민원포털 개편 안내",
+            "담당과": "민원혁신과",
+            "연락처": "044-205-3456"
+          },
+          {
+            "id": 4,
+            "분야": "청렴윤리",
+            "제목": "공직자 청렴교육 정례화",
+            "담당과": "감사담당관실",
+            "연락처": "044-205-4567"
+          },
+          {
+            "id": 5,
+            "분야": "행정혁신",
+            "제목": "공공서비스 사용자 만족도 조사",
+            "담당과": "정책기획관실",
+            "연락처": "044-205-5678"
+          },
+          {
+            "id": 6,
+            "분야": "교육훈련",
+            "제목": "하반기 신규 공무원 합동연수",
+            "담당과": "인재개발과",
+            "연락처": "044-205-6789"
+          },
+          {
+            "id": 7,
+            "분야": "국제협력",
+            "제목": "OECD 디지털정부 워크숍",
+            "담당과": "국제협력담당관실",
+            "연락처": "044-205-7890"
+          },
+          {
+            "id": 8,
+            "분야": "민원서비스",
+            "제목": "모바일 신분증 발급 확대",
+            "담당과": "디지털혁신과",
+            "연락처": "044-205-8901"
+          },
+          {
+            "id": 9,
+            "분야": "안전관리",
+            "제목": "학교 안전점검 결과 발표",
+            "담당과": "안전관리과",
+            "연락처": "044-205-9012"
+          },
+          {
+            "id": 10,
+            "분야": "행정혁신",
+            "제목": "공공데이터 개방 우수기관 시상",
+            "담당과": "데이터정책과",
+            "연락처": "044-205-0123"
+          }
+        ];
+
+        // 분야별 배지 색상 매핑
+        const categoryColors = {
+            "행정혁신": "bg-blue-50 text-blue-700 border-blue-200",
+            "안전관리": "bg-rose-50 text-rose-700 border-rose-200",
+            "민원서비스": "bg-amber-50 text-amber-700 border-amber-200",
+            "청렴윤리": "bg-emerald-50 text-emerald-700 border-emerald-200",
+            "교육훈련": "bg-purple-50 text-purple-700 border-purple-200",
+            "국제협력": "bg-cyan-50 text-cyan-700 border-cyan-200"
+        };
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const categorySelect = document.getElementById('categorySelect');
+        const categoryPills = document.getElementById('categoryPills');
+        const cardGrid = document.getElementById('cardGrid');
+        const resultCountBadge = document.getElementById('resultCountBadge');
+        const emptyState = document.getElementById('emptyState');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let currentCategory = "전체";
+
+        // 초기화 함수
+        function init() {
+            // 현재 날짜 표시
+            const now = new Date();
+            const dateString = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+            document.getElementById('current-date').textContent = dateString;
+
+            // 분야 목록 추출 및 셀렉트/필터 버튼 생성
+            const categories = ["전체", ...new Set(policyData.map(item => item.분야))];
+            
+            categories.forEach(cat => {
+                if (cat !== "전체") {
+                    // Select option 추가
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    categorySelect.appendChild(option);
+
+                    // Pill 버튼 추가
+                    const pill = document.createElement('button');
+                    pill.className = "category-pill px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-full text-xs font-medium transition-all shadow-sm";
+                    pill.textContent = cat;
+                    pill.dataset.category = cat;
+                    pill.addEventListener('click', () => {
+                        categorySelect.value = cat;
+                        currentCategory = cat;
+                        updateActivePills();
+                        filterData();
+                    });
+                    categoryPills.appendChild(pill);
+                }
+            });
+
+            // 전체 보기 Pill 추가 (맨 앞에 삽입)
+            const allPill = document.createElement('button');
+            allPill.className = "category-pill px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-medium transition-all shadow-sm";
+            allPill.textContent = "전체";
+            allPill.dataset.category = "전체";
+            allPill.addEventListener('click', () => {
+                categorySelect.value = "전체";
+                currentCategory = "전체";
+                updateActivePills();
+                filterData();
+            });
+            categoryPills.insertBefore(allPill, categoryPills.children[1]);
+
+            // 이벤트 리스너 등록
+            searchInput.addEventListener('input', filterData);
+            categorySelect.addEventListener('change', (e) => {
+                currentCategory = e.target.value;
+                updateActivePills();
+                filterData();
+            });
+            resetBtn.addEventListener('click', resetFilters);
+
+            // 최초 렌더링
+            renderCards(policyData);
+        }
+
+        // 활성 Pill 스타일 업데이트
+        function updateActivePills() {
+            const pills = document.querySelectorAll('.category-pill');
+            pills.forEach(pill => {
+                if (pill.dataset.category === currentCategory) {
+                    pill.className = "category-pill px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-medium transition-all shadow-sm";
+                } else {
+                    pill.className = "category-pill px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-full text-xs font-medium transition-all shadow-sm";
+                }
+            });
+        }
+
+        // 필터링 로직
+        function filterData() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const selectedCategory = categorySelect.value;
+
+            const filtered = policyData.filter(item => {
+                const matchesCategory = (selectedCategory === "전체" || item.분야 === selectedCategory);
+                const matchesKeyword = keyword === "" || 
+                                       item.제목.toLowerCase().includes(keyword) || 
+                                       item.분야.toLowerCase().includes(keyword) ||
+                                       item.담당과.toLowerCase().includes(keyword);
+                return matchesCategory && matchesKeyword;
+            });
+
+            renderCards(filtered);
+        }
+
+        // 필터 초기화
+        function resetFilters() {
+            searchInput.value = "";
+            categorySelect.value = "전체";
+            currentCategory = "전체";
+            updateActivePills();
+            renderCards(policyData);
+        }
+
+        // 카드 렌더링 함수
+        function renderCards(data) {
+            cardGrid.innerHTML = "";
+            resultCountBadge.textContent = `결과 ${data.length}건`;
+
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            data.forEach(item => {
+                const badgeStyle = categoryColors[item.분야] || "bg-slate-50 text-slate-700 border-slate-200";
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl border border-slate-200 p-5 card-hover transition-all flex flex-col justify-between shadow-sm relative overflow-hidden";
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="px-2.5 py-1 rounded-md text-xs font-semibold border ${badgeStyle}">
+                                ${item.분야}
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono">No. ${item.id}</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-800 mb-4 leading-snug">
+                            ${highlightKeyword(item.제목, searchInput.value.trim())}
+                        </h3>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-slate-100 mt-2">
+                        <div class="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                            <span class="flex items-center text-slate-500">
+                                <i class="fa-regular fa-building mr-1.5 text-indigo-500"></i>담당부서
+                            </span>
+                            <span class="font-semibold text-slate-700">${item.담당과}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-xs text-slate-600">
+                            <span class="flex items-center text-slate-500">
+                                <i class="fa-solid fa-phone mr-1.5 text-indigo-500"></i>연락처
+                            </span>
+                            <a href="tel:${item.연락처}" class="font-mono font-medium text-indigo-600 hover:underline">
+                                ${item.연락처}
+                            </a>
+                        </div>
+                    </div>
+                `;
+                cardGrid.appendChild(card);
+            });
+        }
+
+        // 검색어 하이라이트 유틸리티
+        function highlightKeyword(text, keyword) {
+            if (!keyword) return text;
+            const regex = new RegExp(`(${keyword})`, 'gi');
+            return text.replace(regex, '<span class="bg-yellow-100 text-yellow-900 px-0.5 rounded">$1</span>');
+        }
+
+        // 페이지 로드 시 초기화 실행
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
